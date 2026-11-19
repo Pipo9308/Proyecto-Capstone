@@ -26,7 +26,7 @@ Esta solución automatiza esa vigilancia:
 |---|---|---|
 | **Qué es** | Plataforma de inteligencia de mercado | CRM comercial |
 | **Qué hace** | Agentes SAG y Competidores, alertas por urgencia, dashboard con KPIs, consultor veterinario con IA (RAG) | Clientes, oportunidades, propuestas y metas; permisos por rol; auditoría; asistente RAG para el vendedor |
-| **Interfaces** | Dashboard web | Web + app móvil del vendedor (Flutter) |
+| **Interfaces** | Dashboard web | Web |
 | **Backend** | FastAPI + APScheduler | FastAPI |
 | **Frontend** | React + Vite | React + Vite |
 
@@ -97,12 +97,11 @@ flowchart TB
 | Capa | Tecnología |
 |---|---|
 | Frontend | React + Vite (Ventas en JavaScript, Intel en TypeScript) |
-| App móvil | Flutter (app del vendedor) |
 | Backend | Python 3.12 · FastAPI · APScheduler |
 | Base de datos | Cloud Firestore con índices vectoriales nativos |
 | Caché y rate limit | Redis |
 | IA | RAG con proveedor de IA configurable desde la app |
-| Pruebas | pytest · Vitest · Playwright · flutter test |
+| Pruebas | pytest · Vitest · Playwright |
 | CI/CD | GitHub Actions |
 | Contenedores | Docker y Docker Compose |
 | Despliegue | Vercel (webs) y Render (APIs) |
@@ -124,7 +123,6 @@ Encipharm/
 ├── Enci-Ventas/
 │   ├── Backend/               API FastAPI (app/, tests/, scripts/)
 │   ├── frontend/              CRM web React + Vite
-│   ├── vendedor_app_flutter/  App móvil del vendedor
 │   ├── e2e/                   Pruebas de punta a punta (Playwright)
 │   └── docs/                  Documentación técnica de Ventas
 ├── Enci-Intel/
