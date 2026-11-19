@@ -35,11 +35,11 @@ Los dos comparten **una sola base de datos: Cloud Firestore**.
 ## Cómo funciona (caso de uso)
 
 ```mermaid
-flowchart LR
-    A["08:10 cada día<br/>GitHub Actions despierta la API"] --> B["Agente SAG / Competidores<br/>detecta un registro nuevo"]
-    B --> C["Prioriza<br/>antimicrobianos e inmunológicos<br/>suben la urgencia"]
-    C --> D["Alerta en el dashboard<br/>de Enci-Intel y en Enci-Ventas"]
-    D --> E["El vendedor consulta al asistente<br/>y prepara su respuesta"]
+flowchart TB
+    A["1. 08:10 cada día<br/>GitHub Actions despierta la API"] --> B["2. Detecta<br/>el agente encuentra un registro nuevo"]
+    B --> C["3. Prioriza<br/>antimicrobianos e inmunológicos<br/>suben la urgencia"]
+    C --> D["4. Avisa<br/>alerta en Enci-Intel y en Enci-Ventas"]
+    D --> E["5. Responde<br/>el vendedor consulta al asistente<br/>y prepara su respuesta"]
 ```
 
 **Actores:** vendedor, supervisor y administrador. **Resultado:** el aviso llega el mismo día, sin revisar planillas.
