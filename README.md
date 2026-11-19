@@ -1,8 +1,244 @@
-# ENCI-INTEL — Proyecto Capstone
+# Enci-Intel · Proyecto Capstone
 
-Proyecto de continuidad de software para **Encipharm**, empresa con más de 25 años en salud, nutrición y bioseguridad animal. ENCI-INTEL es una plataforma de agentes de IA (dashboard, alertas, agentes de scraping y consulta) construida sobre una base de código y arquitectura heredadas de una cohorte anterior.
+**Inteligencia de mercado con agentes de IA para Encipharm, integrada al CRM Enci-Ventas.**
 
-Este repositorio reúne la documentación formal de la **Fase 1** de la asignatura Capstone: guía de definición de proyecto, diarios de reflexión, autoevaluaciones, diagnóstico técnico, informe final y presentación.
+Capstone APT122 · Duoc UC, Sede San Joaquín · Ingeniería en Informática · Grupo 1 · 2026
+Empresa mandante: **Encipharm** (salud, nutrición y bioseguridad animal) · Docente: Claudia Reinoso Hurtado
+
+---
+
+## ¿Qué es este proyecto?
+
+Encipharm es una empresa chilena con más de 25 años en salud, nutrición y bioseguridad animal. Compite con Zoetis, Virbac, Drag Pharma y Agrovet.
+
+Antes de este proyecto, su equipo comercial seguía a la competencia **a mano, en planillas Excel**: nuevos registros en el SAG, precios y desabastecimientos. Se enteraba de un movimiento entre **1 y 7 días después**.
+
+Esta solución automatiza esa vigilancia:
+
+- **Enci-Intel** revisa cada día el registro del SAG y los sitios de los competidores, y genera alertas con urgencia según la categoría terapéutica.
+- **Enci-Ventas** es el CRM de los vendedores y **recibe esas alertas** directamente en su flujo de trabajo.
+
+> **Meta del proyecto:** bajar el *Tiempo de Respuesta Competitiva* (desde que la competencia se mueve hasta que el vendedor lo sabe) de 1–7 días a **menos de 4 horas**.
+
+## Los dos productos
+
+| | Enci-Intel | Enci-Ventas |
+|---|---|---|
+| **Qué es** | Plataforma de inteligencia de mercado | CRM comercial |
+| **Qué hace** | Agentes SAG y Competidores, alertas por urgencia, dashboard con KPIs, consultor veterinario con IA (RAG) | Clientes, oportunidades, propuestas y metas; permisos por rol; auditoría; asistente RAG para el vendedor |
+| **Interfaces** | Dashboard web | Web + app móvil del vendedor (Flutter) |
+| **Backend** | FastAPI + APScheduler | FastAPI |
+| **Frontend** | React + Vite | React + Vite |
+
+Los dos comparten **una sola base de datos: Cloud Firestore**.
+
+## Cómo funciona (caso de uso)
+
+```mermaid
+flowchart LR
+    A["08:10 cada día<br/>GitHub Actions despierta la API"] --> B["Agente SAG / Competidores<br/>detecta un registro nuevo"]
+    B --> C["Prioriza<br/>antimicrobianos e inmunológicos<br/>suben la urgencia"]
+    C --> D["Alerta en el dashboard<br/>de Enci-Intel y en Enci-Ventas"]
+    D --> E["El vendedor consulta al asistente<br/>y prepara su respuesta"]
+```
+
+**Actores:** vendedor, supervisor y administrador. **Resultado:** el aviso llega el mismo día, sin revisar planillas.
+
+## Arquitectura
+
+```mermaid
+flowchart TB
+    subgraph Docker["Docker Compose: un contenedor por servicio"]
+        direction TB
+        subgraph V["Enci-Ventas · CRM"]
+            VW["Web<br/>React + Vite"]
+            VA["API Ventas<br/>FastAPI"]
+        end
+        subgraph I["Enci-Intel · Inteligencia"]
+            IW["Dashboard<br/>React + Vite"]
+            IA["API Intel<br/>FastAPI + APScheduler"]
+            AG["Agentes<br/>SAG · Competidores"]
+        end
+        FS[("Cloud Firestore<br/>datos de ambos productos<br/>+ búsqueda vectorial del RAG")]
+        RD[("Redis<br/>caché y límite de uso")]
+    end
+    EXT["Fuentes externas<br/>Registro SAG · sitios de competidores"]
+    LLM["Proveedor de IA<br/>configurable desde la app"]
+    GH["GitHub Actions<br/>CI + disparo diario de agentes"]
+
+    VW --> VA
+    IW --> IA
+    VA -- "proxy: JWT + API key" --> IA
+    IA --> AG
+    AG --> EXT
+    IA --> LLM
+    VA --> LLM
+    VA --> FS
+    IA --> FS
+    VA --> RD
+    IA --> RD
+    GH --> IA
+```
+
+- **Seguridad:** todos los endpoints exigen sesión (JWT). Enci-Ventas consume a Enci-Intel con el JWT del usuario más una API key de servicio. El menú y los permisos cambian según el rol.
+- **IA confiable:** el asistente RAG responde **solo sobre animales**. Si se le pregunta otra cosa, rechaza con una frase fija.
+- **Despliegue en la nube:** webs en **Vercel** y APIs en **Render**. Los agentes corren solos cada mañana.
+
+## Stack tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| Frontend | React + Vite (Ventas en JavaScript, Intel en TypeScript) |
+| App móvil | Flutter (app del vendedor) |
+| Backend | Python 3.12 · FastAPI · APScheduler |
+| Base de datos | Cloud Firestore con índices vectoriales nativos |
+| Caché y rate limit | Redis |
+| IA | RAG con proveedor de IA configurable desde la app |
+| Pruebas | pytest · Vitest · Playwright · flutter test |
+| CI/CD | GitHub Actions |
+| Contenedores | Docker y Docker Compose |
+| Despliegue | Vercel (webs) y Render (APIs) |
+
+## Estructura del repositorio
+
+```text
+Proyecto-Capstone/
+├── Fase1/   Diagnóstico y definición del proyecto
+├── Fase2/   Desarrollo: código fuente, base de datos y documentación técnica
+├── Fase3/   Cierre: diarios de reflexión y presentación final
+└── README.md
+```
+
+El **código fuente** está en `Fase2/Evidencias Proyecto/Evidencias de Sistema/Aplicacion/Encipharm/`:
+
+```text
+Encipharm/
+├── Enci-Ventas/
+│   ├── Backend/               API FastAPI (app/, tests/, scripts/)
+│   ├── frontend/              CRM web React + Vite
+│   ├── vendedor_app_flutter/  App móvil del vendedor
+│   ├── e2e/                   Pruebas de punta a punta (Playwright)
+│   └── docs/                  Documentación técnica de Ventas
+├── Enci-Intel/
+│   ├── Backend/               API FastAPI, agentes (agents/), RAG, tests/, scripts/
+│   └── Frontend/              Dashboard React + Vite
+├── docs/                      Revisiones y planes técnicos
+├── .github/workflows/         ci.yml (pruebas) y agentes.yml (disparo diario)
+├── docker-compose.yml         Levanta todo el proyecto
+└── .env.example               Plantilla de variables de entorno
+```
+
+## Cómo levantarlo en local
+
+**Requisitos:** Docker y Docker Compose.
+
+```bash
+cd "Fase2/Evidencias Proyecto/Evidencias de Sistema/Aplicacion/Encipharm"
+cp .env.example .env          # completar los valores (ver abajo)
+docker compose up -d --build
+```
+
+| Servicio | Dirección |
+|---|---|
+| Enci-Ventas (web) | http://localhost:5173 |
+| Enci-Ventas (API) | http://localhost:8000/health |
+| Enci-Intel (web) | http://localhost:5174 |
+| Enci-Intel (API y documentación) | http://localhost:8080/docs |
+
+En local, Docker levanta además los **emuladores de Firestore y Redis**, así que no necesitas cuentas en la nube para probar.
+
+### Variables de entorno principales
+
+| Variable | Para qué sirve |
+|---|---|
+| `APP_ENV` | `development` en local. Sin esto el backend arranca como producción (sin `/docs`). |
+| `FIREBASE_PROJECT_ID` | Proyecto de Firestore (en local sirve cualquier id con el emulador). |
+| `FIRESTORE_EMULATOR_HOST` | Dirección del emulador de Firestore en local. |
+| `FIREBASE_CREDENTIALS_PATH` / `FIREBASE_CREDENTIALS_JSON` | Cuenta de servicio, solo en la nube. **Nunca subir a git.** |
+| `JWT_SECRET` | Clave de las sesiones. Usar un valor largo y aleatorio. |
+| `ENCI_INTEL_API_URL` y `ENCI_INTEL_API_KEY` | Conexión de Ventas con Intel. La clave debe coincidir con `INTEL_SERVICE_API_KEY` de Intel. |
+| `REDIS_URL` | Caché y límite de uso. |
+| `DEEPSEEK_API_KEY` / `GEMINI_API_KEY` | Claves del proveedor de IA. |
+| `CORS_ORIGINS` | Dominios permitidos (solo los publicados en producción). |
+
+La lista completa está en cada `.env.example`.
+
+### Cargar datos de demostración
+
+Firestore crea las colecciones al escribir el primer documento. Para partir con datos:
+
+```bash
+cd Enci-Ventas/Backend            # o Enci-Intel/Backend
+uv run python scripts/create_vector_index.py   # índice vectorial del RAG
+uv run python scripts/seed_admin.py            # usuario administrador (clave en ADMIN_PASSWORD)
+uv run python scripts/seed_demo_sintetico.py   # datos de demostración de Ventas
+```
+
+Los datos de demostración son ficticios.
+
+## Calidad y pruebas
+
+| Indicador | Resultado |
+|---|---|
+| Pruebas automáticas | **+900**, en 5 suites |
+| Pruebas de punta a punta (Playwright) | **35** |
+| Cobertura del backend de Ventas | **≈ 90 %** (el CI exige un mínimo de 80 %) |
+| Hallazgos críticos de la auditoría | **5 de 5 corregidos** |
+
+**Integración continua:** en cada push, GitHub Actions corre un job por área:
+
+1. Enci-Intel backend (pytest con emulador de Firestore)
+2. Enci-Ventas backend (pytest, lint y cobertura)
+3. Enci-Ventas frontend (lint, tests y build)
+4. Enci-Intel frontend (tests y build)
+
+Para correr las pruebas del backend a mano:
+
+```bash
+cd Enci-Ventas/Backend && uv run pytest
+```
+
+## Evolución del modelo de datos
+
+La empresa pidió dos cambios de base de datos durante el proyecto. Ambos se absorbieron sin romper la API.
+
+| Etapa | Base de datos |
+|---|---|
+| **Fase 1** · heredado | Google Cloud: Firestore, Cloud Run y Cloud Scheduler |
+| **Hito 1** · 29 sep | MVP multi-base: MongoDB Atlas + Supabase (PostgreSQL) + Qdrant + Redis |
+| **15–18 oct** · actual | **Cloud Firestore unificado**, a pedido de la empresa. Migración en 72 horas, sin cambiar la API |
+
+Hoy son **21 colecciones** de Ventas (prefijo `ventas_`) más las de Intel, en el mismo proyecto de Firestore. Los índices vectoriales son de 384 dimensiones en Ventas y 2048 en Intel. Los scripts de migración son idempotentes y por defecto corren en modo de prueba; con `--apply` escriben.
+
+## Metodología
+
+Trabajo ágil (Scrum + Kanban) guiado por los hitos de la asignatura:
+
+| Hito | Contenido |
+|---|---|
+| **S1–S6** | Diagnóstico: 27 hallazgos priorizados P0–P3 |
+| **Hito 1** · 29 sep | MVP con base de datos y despliegue público |
+| **Migración** · 18 oct | Todo en Cloud Firestore |
+| **Hito 2** | Proyecto completo en Docker, con un solo comando |
+| **Hito 3** | Pruebas finales, documentación y entrega |
+
+Sprints de 1 a 2 semanas, con revisión y retrospectiva al cierre, y reunión semanal con la docente. Cada hallazgo de auditoría se trabajó como tarea Kanban, con su prueba de regresión.
+
+## Dónde está la documentación
+
+| Quiero… | Ir a |
+|---|---|
+| Entender la arquitectura vigente | `Fase2/…/Evidencias de Documentacion/01_Arquitectura/Arquitectura_actual.docx` |
+| Instalar y poner en marcha | `…/03_Instalacion/` (manual de instalación y guía de incorporación al equipo) |
+| Ver los requisitos y sus brechas | `…/02_Requisitos/Plan_integracion_requisitos_ERS.docx` |
+| Ver la calidad y las revisiones de código | `…/04_Calidad_y_revisiones/` |
+| Ver la migración a Firestore y los cambios | `…/05_Gestion_y_cambios/` (la **v3** es la definición final con la Carta Gantt vigente) |
+| Ver las capturas de evidencia | `…/07_Capturas_de_evidencias/` |
+| Entender el modelo de datos | `Fase2/…/Evidencias de Sistema/Base de Datos/` (diccionario, diagramas y scripts) |
+| Ver el diagnóstico y la definición inicial | `Fase1/` |
+| Ver los diarios y el cierre | `Fase3/` |
+
+> **Documentos con información anterior.** Algunos documentos conservan la etapa en que se escribieron y mencionan MongoDB, PostgreSQL o Supabase (por ejemplo `ONBOARDING.md`, `Enci-Ventas/docs/architecture.md` y `Arquitectura_Enci-Ventas_etapa_PostgreSQL.docx`). Se mantienen como evidencia histórica. Para el estado actual, usar `Arquitectura_actual.docx` y este README.
 
 ## Equipo
 
@@ -12,45 +248,9 @@ Este repositorio reúne la documentación formal de la **Fase 1** de la asignatu
 | Benjamín Pumarino | Integración de sistemas y APIs / Aseguramiento de la calidad |
 | Elías Sánchez | Análisis de datos e IA aplicada |
 
-**Empresa mandante:** Encipharm (relación gestionada por Alloxentric, Product Owner: Max Kreimerman).
+**Mandante:** Encipharm. Relación gestionada por Alloxentric.
+**Docente:** Claudia Reinoso Hurtado.
 
-## Contenido de `documentos/`
+## Competencias del perfil de egreso evidenciadas
 
-| Archivo | Descripción |
-|---|---|
-| `1.5_Definicion_Proyecto_APT_Enci-Intel.pdf` | Guía de Definición de Proyecto APT presentada en Fase 1. |
-| `1_1_APT122_AutoevaluacionCompetenciasFase1_FelipeRamos.pdf` | Autoevaluación de competencias — Felipe Ramos. |
-| `AutoevaluacionCompetenciasBenjaminPumarino.pdf` | Autoevaluación de competencias — Benjamín Pumarino. |
-| `1_2_APT122_DiarioReflexionFase1_FelipeRamos.pdf` | Diario de reflexión Fase 1 — Felipe Ramos. |
-| `1_2_APT122_DiarioReflexionFase1_EliasSanchez (1).pdf` | Diario de reflexión Fase 1 — Elías Sánchez. |
-| `DiarioReflexionFase1BenjaminPumarino.pdf` | Diario de reflexión Fase 1 — Benjamín Pumarino. |
-| `DiarioReflexionFase1EliasSanchez.pdf` | Diario de reflexión Fase 1 — Elías Sánchez (versión final). |
-| `Informe_EnciIntel_Fase1_final.docx` | Informe completo de Fase 1 (contexto, objetivos, metodología, riesgos, plan de trabajo). |
-| `Enci-Intel_Fase1_Presentacion_2.pptx` | Presentación de cierre de Fase 1. |
-
-## Resumen de Fase 1
-
-Fase 1 se centró en levantar y diagnosticar el estado real del MVP heredado, en lugar de asumir brechas genéricas. El **2 de septiembre de 2026** el equipo realizó un diagnóstico técnico independiente sobre el código fuente, con estos resultados:
-
-- **27 hallazgos priorizados P0–P3**, cada uno con archivo y línea de referencia.
-- **3 hallazgos críticos de seguridad (P0)**: endpoints de lectura sin autenticación, reglas de `firestore.rules` mal versionadas y región del Cloud Scheduler mal codificada.
-- Alcance formalmente aceptado (Acta de Entrega y Conformidad, 9 de julio de 2026): Dashboard + Alertas, Agente SAG, Agente Lanzamientos, Consultor Vet IA y Panel Admin — no el diseño original de 5 agentes ampliados.
-
-Ese diagnóstico es la base de los objetivos, la metodología, la tabla de riesgos (incluye un riesgo **Alto** por los 3 hallazgos P0 de seguridad) y el plan de trabajo del informe de Fase 1.
-
-**Stack actual:** React + TypeScript, FastAPI/Python, Firebase Authentication, Gemini 2.5 Flash / Groq como IA generativa; infraestructura en GCP (Cloud Run, Cloud Scheduler, Cloud Tasks, Firestore, Secret Manager).
-
-## Próximos pasos hacia Fase 2
-
-El plan de trabajo se organiza en 18 semanas: **Fase 1 (S1–S6)** corrección de hallazgos críticos, **Fase 2 (S7–S15)** endurecimiento y ampliación, **Fase 3 (S16–S18)** cierre y validación.
-
-1. **Corregir de inmediato los 3 hallazgos P0** (autenticación en endpoints de lectura, `firestore.rules`, región del Cloud Scheduler) — ya diagnosticados y priorizados, listos para implementarse desde la semana 1.
-2. **Continuar con las correcciones P1–P2** según el plan de trabajo y la Carta Gantt: embeddings multilingües y reindexado del corpus, reemplazo del pickle del vector store, rate limiter y caché compartidos entre instancias, unificación del campo `rol`, endurecimiento de los agentes de scraping y filtrado de alertas por vigencia/idioma.
-3. **Ampliar la cobertura de pruebas** (safety scan, smoke tests de frontend, pruebas end-to-end) e integrar los cambios en el pipeline de CI/CD.
-4. **Validar con Encipharm y Alloxentric** el cierre de las brechas priorizadas, y proponer las funcionalidades de Fase 2 originalmente planteadas en la Guía APT (Análisis de Productos, Mapa Competitivo) como mejora opcional posterior, no como brecha pendiente.
-
-Hitos clave del plan: **S2** hallazgos P0 corregidos · **S5** vector store seguro y caché compartido · **S7** scraping endurecido y alertas filtradas · **S10** cobertura de pruebas y CI/CD actualizado · **S18** cierre, demo final y validación con la empresa mandante.
-
-## Cómo revisar la documentación
-
-El informe completo (`Informe_EnciIntel_Fase1_final.docx`) contiene el detalle de cada sección — contexto, vínculo con el perfil de egreso, factibilidad, objetivos, metodología, evidencias, plan de trabajo con Carta Gantt y referencias. La presentación (`Enci-Intel_Fase1_Presentacion_2.pptx`) resume estos mismos puntos para la exposición oral.
+Pruebas de certificación · Gestión de proyectos · Modelos de datos · Solución de software.
