@@ -1,0 +1,73 @@
+services:
+  # Emulador de Cloud Firestore solo para desarrollo local. Guarda los datos en memoria: al reiniciarlo hay que
+  # volver a sembrar (scripts/seed_admin.py, seed_demo_data.py). En la nube se usa Firestore real (ver .env.example).
+  intel-firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    container_name: enci_firestore
+    command: gcloud emulators firestore start --host-port=0.0.0.0:8085
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
+
+  intel-azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: enci_azurite
+    ports:
+      - "10010:10000"
+      - "10011:10001"
+      - "10012:10002"
+    volumes:
+      - intel_azurite_data:/data
+    restart: unless-stopped
+
+  intel-redis:
+    image: redis:alpine
+    container_name: enci_redis
+    restart: unless-stopped
+
+  intel-backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: enci_backend
+    ports:
+      - "8080:8080"
+    environment:
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID:-enci-local}
+      # Con un proyecto real, vaciar FIRESTORE_EMULATOR_HOST y montar la credencial (FIREBASE_CREDENTIALS_PATH).
+      - FIRESTORE_EMULATOR_HOST=${FIRESTORE_EMULATOR_HOST-intel-firestore:8085}
+      - FIREBASE_CREDENTIALS_PATH=${FIREBASE_CREDENTIALS_PATH:-}
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://intel-azurite:10000/devstoreaccount1;
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY en el .env de la raiz (ver .env.example)}
+      - JWT_ALGORITHM=HS256
+      - INTEL_SERVICE_API_KEY=${INTEL_SERVICE_API_KEY:?Defina INTEL_SERVICE_API_KEY en el .env de la raiz (ver .env.example)}
+      # El RAG usa Firestore Vector Search: necesita un proyecto real con indice vectorial (el emulador no lo soporta).
+      - RAG_COLLECTION=${RAG_COLLECTION:-intel_docs}
+      - REDIS_URL=redis://intel-redis:6379/0
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+    volumes:
+      # Carpeta con firebase-credentials.json (solo lectura). Por defecto una carpeta sin credenciales.
+      - ${FIREBASE_CREDENTIALS_DIR:-./Backend/scripts}:/run/secrets/firebase:ro
+    depends_on:
+      - intel-firestore
+      - intel-azurite
+      - intel-redis
+    restart: unless-stopped
+
+  intel-frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:8080/api/v1
+    container_name: enci_frontend
+    ports:
+      - "5174:8080"
+    depends_on:
+      - intel-backend
+    restart: unless-stopped
+
+volumes:
+  intel_azurite_data:

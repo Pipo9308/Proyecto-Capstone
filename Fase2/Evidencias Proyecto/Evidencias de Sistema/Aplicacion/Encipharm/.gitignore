@@ -1,0 +1,20 @@
+# Documentos internos de auditoria — contexto interno, no se publican en el repo.
+# ONBOARDING.md SI se trackea: va con el push para el dev que recibe el traspaso.
+/Enci-Intel_Audit.md
+/Enci-Ventas_Audit.md
+/Reporte_Auditoria_y_Estimacion_Enci.md
+/.agents/
+
+# Credenciales locales (conexiones a bases de datos online, API keys)
+.env
+.env.*
+!.env.example
+
+# Editores / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Credenciales de Firebase (cuenta de servicio): nunca al repositorio
+firebase-credentials*.json
+*-firebase-adminsdk-*.json

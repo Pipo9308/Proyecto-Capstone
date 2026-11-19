@@ -1,0 +1,22 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+google-cloud-firestore
+azure-storage-blob
+pyjwt
+bcrypt
+openai
+anthropic
+cryptography
+pypdf
+numpy
+python-multipart
+apscheduler
+redis
+# Dependencias de los scrapers en agents/ (agent-sag, agent-competidores),
+# ejecutados por app/scheduler.py dentro de esta misma imagen via subprocess.
+# Sin esto, cualquier corrida programada fallaba con ModuleNotFoundError.
+httpx
+pandas
+beautifulsoup4

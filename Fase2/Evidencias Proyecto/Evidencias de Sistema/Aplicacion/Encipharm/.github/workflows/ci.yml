@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  intel-backend:
+    name: Enci-Intel backend (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Enci-Intel/Backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: Enci-Intel/Backend/requirements-dev.txt
+      - name: Emulador de Firestore
+        run: |
+          docker run -d --name firestore -p 8085:8085 gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators             gcloud emulators firestore start --host-port=0.0.0.0:8085
+          for i in $(seq 1 60); do curl -s localhost:8085 | grep -q Ok && exit 0; sleep 2; done
+          docker logs firestore; exit 1
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+      # Los secretos y el Redis falsos los define tests/conftest.py; los tests de Firestore usan el emulador.
+      - name: Tests
+        run: python -m pytest
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8085
+
+  ventas-backend:
+    name: Enci-Ventas backend (pytest)
+    runs-on: ubuntu-latest
+    services:
+      # El limitador (slowapi) usa Redis al atender cada request.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: Enci-Ventas/Backend
+    env:
+      APP_ENV: development
+      # Los tests corren contra el emulador de Firestore: nunca tocan una base real.
+      FIREBASE_PROJECT_ID: enci-test
+      FIRESTORE_EMULATOR_HOST: localhost:8085
+      JWT_SECRET: ci-only-secret-not-used-anywhere-else-0123456789
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: Enci-Ventas/Backend/uv.lock
+      - name: Emulador de Firestore
+        run: |
+          docker run -d --name firestore -p 8085:8085 gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators             gcloud emulators firestore start --host-port=0.0.0.0:8085
+          for i in $(seq 1 60); do curl -s localhost:8085 | grep -q Ok && exit 0; sleep 2; done
+          docker logs firestore; exit 1
+      - name: Instalar dependencias
+        run: uv sync --group dev
+      - name: Lint (solo errores reales, no estilo)
+        run: uv run ruff check app tests scripts
+      # Hoy la cobertura ronda el 90 %; el piso evita que baje sin que alguien lo note.
+      - name: Tests con cobertura
+        run: uv run pytest -q --cov=app --cov-report=term --cov-fail-under=80
+
+  ventas-frontend:
+    name: Enci-Ventas frontend (vitest + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Enci-Ventas/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Enci-Ventas/frontend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  intel-frontend:
+    name: Enci-Intel frontend (tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Enci-Intel/Frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Enci-Intel/Frontend/package-lock.json
+      - run: npm ci
+      # node --test ejecuta los .ts directamente (Node >= 22.18).
+      - name: Tests
+        run: npm test
+      - name: Build (tsc + vite)
+        run: npm run build
+
+  flutter:
+    name: App Flutter (analyze + test)
+    runs-on: ubuntu-latest
+    # Verificado con Flutter 3.47.7 (analyze y 38 tests pasan). Sigue sin bloquear el CI
+    # porque la rama `stable` puede avanzar a una version que cambie lints; quitar
+    # continue-on-error cuando se fije la version del SDK.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: Enci-Ventas/vendedor_app_flutter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analizar
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Tests
+        run: flutter test

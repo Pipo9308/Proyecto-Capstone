@@ -1,0 +1,96 @@
+services:
+  # Emulador de Cloud Firestore solo para desarrollo local (datos en memoria: al reiniciarlo hay que volver a sembrar con
+  # scripts/seed_admin.py y seed_demo_fase4.py). En la nube se usa Firestore real (ver .env.example).
+  firestore:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    container_name: enci-firestore-local
+    command: gcloud emulators firestore start --host-port=0.0.0.0:8085
+    ports:
+      - "8086:8085"
+    restart: unless-stopped
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: enci-azurite-local
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - enci_azurite_data:/data
+    command: "azurite --loose --skipApiVersionCheck --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0"
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: enci-redis-local
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  backend:
+    build: 
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: enci-backend-local
+    environment:
+      - APP_ENV=development
+      - FIREBASE_PROJECT_ID=${VENTAS_FIREBASE_PROJECT_ID:-enci-local}
+      # Con un proyecto real: VENTAS_FIRESTORE_EMULATOR_HOST vacio y FIREBASE_CREDENTIALS_JSON (JSON en una linea).
+      - FIRESTORE_EMULATOR_HOST=${VENTAS_FIRESTORE_EMULATOR_HOST-firestore:8085}
+      - FIREBASE_CREDENTIALS_JSON=${VENTAS_FIREBASE_CREDENTIALS_JSON:-}
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=${JWT_SECRET:?Defina JWT_SECRET en el .env de la raiz (ver .env.example)}
+      - ENCI_INTEL_API_URL=http://intel-backend:8080
+      # Azurite del propio compose (clave publica de desarrollo del emulador, no es un secreto).
+      # Sin esto el backend usa 127.0.0.1:10000, que dentro del contenedor no es Azurite.
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;}
+      - ENCI_INTEL_API_KEY=${INTEL_SERVICE_API_KEY:?Defina INTEL_SERVICE_API_KEY en el .env de la raiz (ver .env.example)}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      # Enlaces de invitacion (RQ-05): URL publica de la web y vigencia.
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - INVITATION_TTL_HOURS=${INVITATION_TTL_HOURS:-72}
+      # Chat de competencia (RQ-08). Todo opcional; la busqueda web empieza apagada.
+      - COMPETENCIA_MODEL=${COMPETENCIA_MODEL:-}
+      - COMPETENCIA_CHAT_DAILY_LIMIT=${COMPETENCIA_CHAT_DAILY_LIMIT:-50}
+      - COMPETENCIA_PRICE_PER_1K_INPUT=${COMPETENCIA_PRICE_PER_1K_INPUT:-0}
+      - COMPETENCIA_PRICE_PER_1K_OUTPUT=${COMPETENCIA_PRICE_PER_1K_OUTPUT:-0}
+      - WEB_SEARCH_ENABLED=${WEB_SEARCH_ENABLED:-false}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+      # Uncomment and fill if needed:
+      # - GCS_BUCKET_DOCUMENTS=encipharm-rag-documents
+    ports:
+      - "8000:8000"
+    command: ["sh", "-c", "exec uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+    depends_on:
+      firestore:
+        condition: service_started
+      azurite:
+        condition: service_started
+      redis:
+        condition: service_started
+    volumes:
+      - ./Backend:/app
+      - /app/.venv # Prevent local virtualenv from overriding container's virtualenv
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: enci-frontend-local
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Prevent local node_modules from overriding container's node_modules
+    restart: unless-stopped
+
+volumes:
+  enci_azurite_data:

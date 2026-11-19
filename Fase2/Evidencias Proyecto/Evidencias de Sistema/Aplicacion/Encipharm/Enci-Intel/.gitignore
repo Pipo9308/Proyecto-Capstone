@@ -1,0 +1,27 @@
+.claude/
+__pycache__/
+*.pyc
+.coverage
+coverage.xml
+
+# Frontend build artifacts (no deberian trackearse)
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.vite/
+node_modules/
+dist/
+
+# Entornos Python / caches
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secretos / entorno
+.env
+.env.*
+!.env.example
+
+# Override local para correr junto a Enci-Ventas (puertos de esta maquina)
+docker-compose.override.yml

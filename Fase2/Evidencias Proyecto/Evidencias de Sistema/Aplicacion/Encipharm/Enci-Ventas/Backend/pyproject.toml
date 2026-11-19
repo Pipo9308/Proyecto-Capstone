@@ -1,0 +1,46 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.1",
+    "httpx>=0.28.1",
+    "openai>=1.58.1",
+    "pydantic[email]>=2.13.3",
+    "pydantic-settings>=2.14.0",
+    "pypdf>=4.3.1",
+    "python-docx>=1.1.2",
+    "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.21",
+    "fastembed>=0.3.1",
+    "uvicorn[standard]>=0.46.0",
+    "pyjwt>=2.12.1",
+    "passlib[bcrypt]>=1.7.4",
+    "azure-storage-blob>=12.30.0",
+    "requests>=2.33.1",
+    "redis>=5.0.1",
+    "slowapi>=0.1.9",
+    "google-cloud-firestore>=2.21.0",
+    "anthropic>=2.9.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff.lint]
+# Solo errores reales (sintaxis, nombres sin definir, imports sin usar); el estilo no bloquea el CI.
+select = ["E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Estos __init__ importan los modelos para registrarlos en SQLAlchemy.
+"app/models_sql/__init__.py" = ["F401"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/__pycache__/*"]

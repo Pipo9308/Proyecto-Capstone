@@ -1,0 +1,220 @@
+# =========================
+# General
+# =========================
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.backup
+*.old
+*.orig
+*final_final*
+*copia*
+*corregido*
+*.swp
+*.swo
+__pycache__/
+.idea/
+.vscode/
+.vscode-test/
+.vs/
+
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Secrets / Credentials
+# =========================
+serviceAccountKey.json
+*serviceAccount*.json
+*service-account*.json
+service_account*.json
+firebase-adminsdk*.json
+
+
+# =========================
+# Backend (Python / FastAPI)
+# =========================
+backend/.venv/
+Backend/.venv/
+backend/venv/
+Backend/venv/
+backend/__pycache__/
+Backend/__pycache__/
+backend/**/*.pyc
+Backend/**/*.pyc
+backend/**/*.pyo
+Backend/**/*.pyo
+backend/**/*.pyd
+Backend/**/*.pyd
+backend/.pytest_cache/
+Backend/.pytest_cache/
+backend/.mypy_cache/
+Backend/.mypy_cache/
+backend/.ruff_cache/
+Backend/.ruff_cache/
+backend/.coverage
+Backend/.coverage
+backend/coverage.xml
+Backend/coverage.xml
+backend/htmlcov/
+Backend/htmlcov/
+backend/.python-version
+Backend/.python-version
+backend/.cache/
+Backend/.cache/
+backend/dist/
+Backend/dist/
+backend/build/
+Backend/build/
+backend/*.sqlite3
+Backend/*.sqlite3
+backend/*.db
+Backend/*.db
+chroma_db/
+Backend/chroma_db/
+Backend/document_storage/
+
+# =========================
+# Frontend (Vue / Node / Vite)
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/coverage/
+frontend/.eslintcache
+frontend/*.tsbuildinfo
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/.npm/
+frontend/.parcel-cache/
+frontend/.svelte-kit/
+frontend/.nuxt/
+frontend/.next/
+frontend/out/
+
+# =========================
+# Vendedor app / PWA (React / Vite)
+# =========================
+vendedor-app/node_modules/
+vendedor-app/dist/
+vendedor-app/.vite/
+vendedor-app/.cache/
+vendedor-app/coverage/
+vendedor-app/.eslintcache
+vendedor-app/*.tsbuildinfo
+vendedor-app/npm-debug.log*
+vendedor-app/yarn-debug.log*
+vendedor-app/yarn-error.log*
+vendedor-app/pnpm-debug.log*
+vendedor-app/.npm/
+vendedor-app/.parcel-cache/
+
+# =========================
+# Mobile (Flutter / Dart)
+# =========================
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/coverage/
+mobile/.pub-cache/
+mobile/.idea/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/ios/Flutter/ephemeral/
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/App.framework
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Flutter/.last_build_id
+mobile/ios/Runner/GeneratedPluginRegistrant.*
+mobile/ios/DerivedData/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+mobile/**/*.jks
+
+# =========================
+# Firebase / GCP local
+# =========================
+.firebase/
+.firebase/*
+firebase-debug.log
+firestore-debug.log
+functions-debug.log
+firebase-debug.*
+firestore-debug.*
+
+# =========================
+# Generated files
+# =========================
+**/*.g.dart
+**/*.freezed.dart
+**/*.mocks.dart
+**/*.config.dart
+
+# =========================
+# Optional local artifacts
+# =========================
+output/
+
+/node_modules/
+/dist/
+.vercel
+
+# =========================
+# Vendedor App (Flutter) - nombre real de carpeta (las reglas "mobile/" y
+# "vendedor-app/" de arriba no matchean vendedor_app_flutter/)
+# =========================
+vendedor_app_flutter/.dart_tool/
+vendedor_app_flutter/.flutter-plugins
+vendedor_app_flutter/.flutter-plugins-dependencies
+vendedor_app_flutter/.packages
+vendedor_app_flutter/build/
+vendedor_app_flutter/coverage/
+vendedor_app_flutter/.pub-cache/
+vendedor_app_flutter/.idea/
+vendedor_app_flutter/ios/Pods/
+vendedor_app_flutter/ios/.symlinks/
+vendedor_app_flutter/ios/Flutter/ephemeral/
+vendedor_app_flutter/ios/Flutter/Flutter.framework
+vendedor_app_flutter/ios/Flutter/App.framework
+vendedor_app_flutter/ios/Flutter/Generated.xcconfig
+vendedor_app_flutter/ios/Flutter/flutter_export_environment.sh
+vendedor_app_flutter/ios/Flutter/.last_build_id
+vendedor_app_flutter/ios/Runner/GeneratedPluginRegistrant.*
+vendedor_app_flutter/ios/DerivedData/
+vendedor_app_flutter/android/.gradle/
+vendedor_app_flutter/android/local.properties
+vendedor_app_flutter/android/key.properties
+vendedor_app_flutter/android/app/debug/
+vendedor_app_flutter/android/app/profile/
+vendedor_app_flutter/android/app/release/
+vendedor_app_flutter/**/*.jks
+
+# =========================
+# Archivos sueltos ajenos a este proyecto (otro cliente, no deben trackearse)
+# =========================
+/mongo_script.js
+/queries_remote.py
+/weaviate_api_queries.py
+/weaviate_connection.py
+/weaviate_schema.json
+
+# Override local de docker compose (puertos/URLs especificos de esta maquina)
+docker-compose.override.yml
+

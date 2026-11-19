@@ -1,0 +1,10 @@
+name: encipharm
+
+include:
+  - Enci-Intel/docker-compose.yml
+  - Enci-Ventas/docker-compose.yml
+
+networks:
+  encipharm_net:
+    name: encipharm_net
+    driver: bridge
