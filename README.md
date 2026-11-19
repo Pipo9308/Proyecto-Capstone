@@ -48,38 +48,46 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    subgraph Docker["Docker Compose: un contenedor por servicio"]
-        direction TB
-        subgraph V["Enci-Ventas · CRM"]
-            VW["Web<br/>React + Vite"]
-            VA["API Ventas<br/>FastAPI"]
-        end
-        subgraph I["Enci-Intel · Inteligencia"]
-            IW["Dashboard<br/>React + Vite"]
-            IA["API Intel<br/>FastAPI + APScheduler"]
-            AG["Agentes<br/>SAG · Competidores"]
-        end
-        FS[("Cloud Firestore<br/>datos de ambos productos<br/>+ búsqueda vectorial del RAG")]
+    U(["Usuarios<br/>vendedor · supervisor · administrador"])
+    GH["GitHub Actions<br/>CI y disparo diario de agentes"]
+
+    subgraph WEB["1 · Interfaces web"]
+        direction LR
+        VW["Enci-Ventas<br/>React + Vite"]
+        IW["Enci-Intel<br/>React + Vite"]
+    end
+
+    subgraph API["2 · APIs y agentes"]
+        direction LR
+        VA["API Ventas<br/>FastAPI"]
+        IA["API Intel<br/>FastAPI + APScheduler"]
+        AG["Agentes<br/>SAG · Competidores"]
+        VA -- "proxy<br/>JWT + API key" --> IA
+        IA --> AG
+    end
+
+    subgraph DATA["3 · Datos"]
+        direction LR
+        FS[("Cloud Firestore<br/>datos + búsqueda vectorial")]
         RD[("Redis<br/>caché y límite de uso")]
     end
-    EXT["Fuentes externas<br/>Registro SAG · sitios de competidores"]
-    LLM["Proveedor de IA<br/>configurable desde la app"]
-    GH["GitHub Actions<br/>CI + disparo diario de agentes"]
 
-    VW --> VA
-    IW --> IA
-    VA -- "proxy: JWT + API key" --> IA
-    IA --> AG
-    AG --> EXT
-    IA --> LLM
-    VA --> LLM
-    VA --> FS
-    IA --> FS
-    VA --> RD
-    IA --> RD
-    GH --> IA
+    subgraph EXT["4 · Servicios externos"]
+        direction LR
+        SRC["Registro SAG y<br/>sitios de competidores"]
+        LLM["Proveedor de IA<br/>configurable desde la app"]
+    end
+
+    U --> WEB
+    WEB --> API
+    GH -- "08:10 cada día" --> API
+    API --> DATA
+    API -- "scraping y consultas" --> EXT
 ```
 
+**Cómo leer el diagrama:** el usuario entra por una web, la web habla con su API y las APIs guardan todo en Firestore. Enci-Ventas pide los datos de inteligencia a Enci-Intel mediante un proxy. Los agentes salen a leer el SAG y los sitios de la competencia.
+
+- **Docker Compose:** cada servicio corre en su propio contenedor. Con un solo `docker compose up` se levanta todo, y en local se agregan los emuladores de Firestore y Redis.
 - **Seguridad:** todos los endpoints exigen sesión (JWT). Enci-Ventas consume a Enci-Intel con el JWT del usuario más una API key de servicio. El menú y los permisos cambian según el rol.
 - **IA confiable:** el asistente RAG responde **solo sobre animales**. Si se le pregunta otra cosa, rechaza con una frase fija.
 - **Despliegue en la nube:** webs en **Vercel** y APIs en **Render**. Los agentes corren solos cada mañana.
